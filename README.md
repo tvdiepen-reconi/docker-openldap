@@ -1,3 +1,7 @@
+# reconi / openldap
+
+- `podman build -t reconi/openldap:1.5.0 --rm image`
+
 # osixia/openldap
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/osixia/openldap.svg)](https://hub.docker.com/r/osixia/openldap/)

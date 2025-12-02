@@ -32,15 +32,17 @@ RUN if [ -z "${LDAP_OPENLDAP_GID}" ]; then groupadd -g 911 -r openldap; else gro
 # 11. Remove gnupg/dirmngr (no longer needed, reduces image size)
 # 12. Clean up apt cache
 RUN ARCHIVE_URL="archive.debian.org" && \
-    sed -i "s|deb.debian.org/debian|${ARCHIVE_URL}/debian|g" /etc/apt/sources.list && \
-    sed -i "s|security.debian.org/debian-security|${ARCHIVE_URL}/debian-security|g" /etc/apt/sources.list && \
+    sed -i "s|http://deb.debian.org/debian|https://${ARCHIVE_URL}/debian|g" /etc/apt/sources.list && \
+    sed -i "s|http://security.debian.org/debian-security|https://${ARCHIVE_URL}/debian-security|g" /etc/apt/sources.list && \
+    sed -i "s|https://deb.debian.org/debian|https://${ARCHIVE_URL}/debian|g" /etc/apt/sources.list && \
+    sed -i "s|https://security.debian.org/debian-security|https://${ARCHIVE_URL}/debian-security|g" /etc/apt/sources.list && \
     grep -q "buster-updates" /etc/apt/sources.list && sed -i '/buster-updates/d' /etc/apt/sources.list || true && \
-    echo "deb http://${ARCHIVE_URL}/debian buster-backports main" >> /etc/apt/sources.list && \
+    echo "deb https://${ARCHIVE_URL}/debian buster-backports main" >> /etc/apt/sources.list && \
     echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until && \
     echo 'Acquire::AllowInsecureRepositories "true";' > /etc/apt/apt.conf.d/99allow-insecure && \
     apt-get update && \
     apt-get install -y --no-install-recommends gnupg dirmngr && \
-    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131 && \
+    apt-key adv --keyserver hkps://keyserver.ubuntu.com --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131 && \
     rm /etc/apt/apt.conf.d/99allow-insecure && \
     apt-get update && \
     apt-get remove -y --purge --auto-remove gnupg dirmngr && \
