@@ -82,6 +82,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends dos2unix \
     && apt-get remove -y --purge --auto-remove dos2unix \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+    
+# Create ldap.conf file (needed by slapd startup script for TLS configuration)
+RUN mkdir -p /etc/ldap && touch /etc/ldap/ldap.conf
 
 # Use baseimage install-service script
 # https://github.com/osixia/docker-light-baseimage/blob/master/image/tool/install-service
