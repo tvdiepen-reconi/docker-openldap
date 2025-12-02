@@ -15,8 +15,37 @@ ARG PQCHECKER_MD5=c005ce596e97d13e39485e711dcbc7e1
 RUN if [ -z "${LDAP_OPENLDAP_GID}" ]; then groupadd -g 911 -r openldap; else groupadd -r -g ${LDAP_OPENLDAP_GID} openldap; fi \
     && if [ -z "${LDAP_OPENLDAP_UID}" ]; then useradd -u 911 -r -g openldap openldap; else useradd -r -g openldap -u ${LDAP_OPENLDAP_UID} openldap; fi
 
-# Add buster-backports in preparation for downloading newer openldap components, especially sladp
-RUN echo "deb http://ftp.debian.org/debian buster-backports main" >> /etc/apt/sources.list
+# Switch to archive repositories since Buster is EOL (end-of-life)
+# and add buster-backports for newer openldap components
+#
+# Steps:
+# 1. Replace deb.debian.org with archive.debian.org (main repo moved to archive)
+# 2. Replace security.debian.org with archive.debian.org (security repo moved to archive)
+# 3. Remove buster-updates line (doesn't exist in archive)
+# 4. Add buster-backports from archive for newer OpenLDAP packages
+# 5. Disable timestamp validation (archived repos have expired timestamps)
+# 6. Temporarily allow insecure repos (needed to install gnupg)
+# 7. Install gnupg and dirmngr (required for importing GPG keys)
+# 8. Import missing Debian archive signing keys from Ubuntu keyserver
+# 9. Remove insecure repos config (security restored after key import)
+# 10. Update package lists with verified signatures
+# 11. Remove gnupg/dirmngr (no longer needed, reduces image size)
+# 12. Clean up apt cache
+RUN ARCHIVE_URL="archive.debian.org" && \
+    sed -i "s|deb.debian.org/debian|${ARCHIVE_URL}/debian|g" /etc/apt/sources.list && \
+    sed -i "s|security.debian.org/debian-security|${ARCHIVE_URL}/debian-security|g" /etc/apt/sources.list && \
+    grep -q "buster-updates" /etc/apt/sources.list && sed -i '/buster-updates/d' /etc/apt/sources.list || true && \
+    echo "deb http://${ARCHIVE_URL}/debian buster-backports main" >> /etc/apt/sources.list && \
+    echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99no-check-valid-until && \
+    echo 'Acquire::AllowInsecureRepositories "true";' > /etc/apt/apt.conf.d/99allow-insecure && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends gnupg dirmngr && \
+    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0E98404D386FA1D9 6ED0E7B82643E131 && \
+    rm /etc/apt/apt.conf.d/99allow-insecure && \
+    apt-get update && \
+    apt-get remove -y --purge --auto-remove gnupg dirmngr && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install OpenLDAP, ldap-utils and ssl-tools from the (backported) baseimage and clean apt-get files
 # sources: https://github.com/osixia/docker-light-baseimage/blob/master/image/tool/add-service-available
