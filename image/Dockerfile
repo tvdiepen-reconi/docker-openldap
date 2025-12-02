@@ -69,12 +69,19 @@ RUN echo "path-include /usr/share/doc/krb5*" >> /etc/dpkg/dpkg.cfg.d/docker && a
     slapd-contrib=${OPENLDAP_PACKAGE_VERSION}\* \
     krb5-kdc-ldap \
     && update-ca-certificates \
-    && apt-get remove -y --purge --auto-remove curl ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Add service directory to /container/service
 ADD service /container/service
+
+# Fix line endings (Windows CRLF -> Unix LF) and execute permissions
+RUN apt-get update && apt-get install -y --no-install-recommends dos2unix \
+    && find /container/service -name "*.sh" -exec dos2unix {} \; \
+    && find /container/service -name "*.sh" -exec chmod +x {} \; \
+    && apt-get remove -y --purge --auto-remove dos2unix \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Use baseimage install-service script
 # https://github.com/osixia/docker-light-baseimage/blob/master/image/tool/install-service
